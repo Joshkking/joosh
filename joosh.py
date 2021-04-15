@@ -1,3 +1,110 @@
+def cm_sim(n=100, propt=0.5, wtp=1, wtn=1, wfp=-1, wfn=-1):
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    #import seaborn as sb
+    
+    # proportion actual false
+    propf = 1 - propt
+    # count the number of actual trues and falses
+    countt = int(propt * n)
+    countf = int(propf * n)
+    
+    # create an array representing the actuals
+    a = np.full((countt), 1)
+    b = np.full((countf), 0)
+    y = np.concatenate((a, b))
+    
+    # create an array representing probability steps of the proportion gotten wrong
+    eprobs = np.arange(start=0, stop=1.05, step=0.05)
+    
+    # create some empty lists to store items in
+    t_error_list = []
+    f_error_list = []
+    score_list = []
+    tp_list = []
+    tn_list = []
+    fp_list = []
+    fn_list = []
+    
+    # loop through each combination of error probabilities so we can have error in trues and falses
+    for t_error in eprobs:
+        for f_error in eprobs:
+            
+            # append the relevant error probabilities
+            t_error_list.append(t_error)
+            f_error_list.append(f_error)
+            
+            # resest yhat
+            yhat = y.copy()
+            
+            # find how many trues we need to mess up
+            tindex = int(countt * t_error)
+            # change that many trues to falses
+            if t_error != 0:
+                yhat[:tindex] = 0
+            
+            # find how many falses we need to mess up
+            findex = int(countf * f_error)
+            # change that many falses to trues
+            if f_error != 0:
+                yhat[-findex:] = 1
+            
+            # reset (or create) the counters
+            tp = 0
+            tn = 0
+            fp = 0
+            fn = 0
+            
+            # append a score based on whether the prediction was correct or not
+            for i in range(len(y)):
+                if y[i] == 1 and yhat[i] == 1:
+                    tp += 1
+                elif y[i] == 0 and yhat[i] == 0:
+                    tn += 1
+                elif y[i] == 0 and yhat[i] == 1:
+                    fp += 1
+                elif y[i] == 1 and yhat[i] == 0:
+                    fn += 1
+                    
+            # calculate the score and append to the relevant lists
+            score = (wtp)*tp + (wtn)*tn + (wfp)*fp + (wfn)*fn
+            score_list.append(score)
+            tp_list.append(tp)
+            tn_list.append(tn)
+            fp_list.append(fp)
+            fn_list.append(fn)
+    
+    # Create a dataframe for easy housing the data
+    df = pd.DataFrame(data={
+        'Positive Class Error (%)': t_error_list
+        , 'Negative Class Error (%)': f_error_list
+        , 'Score':score_list
+        , 'tp': tp_list
+        , 'tn': tn_list
+        , 'fp': fp_list
+        , 'fn': fn_list
+    })
+    
+    #plt.figure(figsize=(7,7))
+    #sb.scatterplot(data=df, y='Positive Class Error (%)', x='Negative Class Error (%)'
+    #               , hue='Score', size='Score', palette='viridis_r')
+    #plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    #plt.show()
+    
+    # Plot the results
+    plt.figure(figsize=(8, 7))
+    plt.hexbin(x=df['Negative Class Error (%)'], y=df['Positive Class Error (%)'], C=df.Score, gridsize=15)
+    plt.xlabel('Negative Class Error (%)')
+    plt.ylabel('Positive Class Error (%)')
+    cbar = plt.colorbar()
+    cbar.set_label('Score')
+    plt.show()
+
+
+
+
 class stepwise:
     
     def __init__(self, data, target, features, method='forward', target_type='numerical', pcutval=0.05, checks=[]):
